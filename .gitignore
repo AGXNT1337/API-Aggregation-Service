@@ -1,0 +1,48 @@
+# .NET Core
+bin/
+obj/
+*.swp
+*.user
+*.suo
+*.tmp
+*.log
+*.vspscc
+.vscode/
+.project
+.idea/
+.DS_Store
+.vs/
+*.ncrunchsolution
+*.ncrunchproject
+*.localhistory
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Auto-generated files
+Generated\
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Publish output
+wwwroot/
+publish/
+
+# Azure and Cloud Hosting
+.vs/
+.azure/
+appsettings.Production.json
+
+# Rider settings
+.idea/
+*.sln.iml
+*.unityproj
+*.csproj.DotSettings
