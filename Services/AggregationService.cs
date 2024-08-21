@@ -1,5 +1,6 @@
 ﻿using APIAggregation.Interfaces;
 using APIAggregation.Models;
+using System.Diagnostics;
 
 namespace APIAggregation.Services
 {
@@ -8,15 +9,18 @@ namespace APIAggregation.Services
         private readonly IGitHubService _gitHubService;
         private readonly ITwitterService _twitterService;
         private readonly IWeatherService _weatherService;
+        private readonly IStatisticsService _statisticsService;
 
         public AggregationService(
             IGitHubService gitHubService,
             ITwitterService twitterService,
-            IWeatherService weatherService)
+            IWeatherService weatherService,
+            IStatisticsService statisticsService)
         {
             _gitHubService = gitHubService;
             _twitterService = twitterService;
             _weatherService = weatherService;
+            _statisticsService = statisticsService;
         }
 
         public async Task<AggregatedData> GetAggregatedDataAsync(
@@ -30,7 +34,6 @@ namespace APIAggregation.Services
             DateTime? createdBefore = null,
             DateTime? updatedAfter = null,
             DateTime? updatedBefore = null)
-
         {
             var aggregatedData = new AggregatedData
             {
@@ -46,6 +49,7 @@ namespace APIAggregation.Services
 
             var gitHubTask = Task.Run(async () =>
             {
+                var stopwatch = Stopwatch.StartNew();
                 try
                 {
                     var gitHubData = await _gitHubService.GetUserRepositoriesAsync(github);
@@ -56,10 +60,16 @@ namespace APIAggregation.Services
                 {
                     aggregatedData.GitHub.Add(new GitHubRepo { Name = "Unavailable", HtmlUrl = "Unavailable" });
                 }
+                finally
+                {
+                    stopwatch.Stop();
+                    _statisticsService.RecordRequest("github", stopwatch.ElapsedMilliseconds);
+                }
             });
 
             var twitterTask = Task.Run(async () =>
             {
+                var stopwatch = Stopwatch.StartNew();
                 try
                 {
                     aggregatedData.Twitter = await _twitterService.GetUserDataAsync(twitter) ?? new TwitterUserData { Id = "Unavailable", Username = "Unavailable", Name = "Unavailable" };
@@ -68,10 +78,16 @@ namespace APIAggregation.Services
                 {
                     aggregatedData.Twitter = new TwitterUserData { Id = "Unavailable", Username = "Unavailable", Name = "Unavailable" };
                 }
+                finally
+                {
+                    stopwatch.Stop();
+                    _statisticsService.RecordRequest("twitter", stopwatch.ElapsedMilliseconds);
+                }
             });
 
             var weatherTask = Task.Run(async () =>
             {
+                var stopwatch = Stopwatch.StartNew();
                 try
                 {
                     aggregatedData.Weather = await _weatherService.GetCurrentWeatherAsync(location) ?? new WeatherInfo
@@ -89,6 +105,11 @@ namespace APIAggregation.Services
                         Main = new WeatherMain { Temp = double.NaN },
                         Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Unavailable" } }
                     };
+                }
+                finally
+                {
+                    stopwatch.Stop();
+                    _statisticsService.RecordRequest("weather", stopwatch.ElapsedMilliseconds);
                 }
             });
 

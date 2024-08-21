@@ -13,6 +13,8 @@ builder.Services.AddHttpClient<IWeatherService, WeatherService>();
 
 builder.Services.AddScoped<IAggregationService, AggregationService>();
 
+builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
+
 // Add caching services
 builder.Services.AddMemoryCache();
 

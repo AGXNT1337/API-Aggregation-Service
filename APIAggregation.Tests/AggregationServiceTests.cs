@@ -15,6 +15,7 @@ namespace APIAggregation.Tests
         private readonly Mock<IGitHubService> _mockGitHubService;
         private readonly Mock<ITwitterService> _mockTwitterService;
         private readonly Mock<IWeatherService> _mockWeatherService;
+        private readonly Mock<IStatisticsService> _mockStatisticsService;
         private readonly AggregationService _aggregationService;
 
         public AggregationServiceTests()
@@ -22,11 +23,13 @@ namespace APIAggregation.Tests
             _mockGitHubService = new Mock<IGitHubService>();
             _mockTwitterService = new Mock<ITwitterService>();
             _mockWeatherService = new Mock<IWeatherService>();
+            _mockStatisticsService = new Mock<IStatisticsService>();
 
             _aggregationService = new AggregationService(
                 _mockGitHubService.Object,
                 _mockTwitterService.Object,
-                _mockWeatherService.Object
+                _mockWeatherService.Object,
+                _mockStatisticsService.Object
             );
         }
 
@@ -63,6 +66,8 @@ namespace APIAggregation.Tests
             _mockTwitterService.Setup(s => s.GetUserDataAsync(It.IsAny<string>())).ReturnsAsync(twitterUser);
             _mockWeatherService.Setup(s => s.GetCurrentWeatherAsync(It.IsAny<string>())).ReturnsAsync(weatherInfo);
 
+            _mockStatisticsService.Setup(s => s.RecordRequest(It.IsAny<string>(), It.IsAny<long>()));
+
             // Act
             var result = await _aggregationService.GetAggregatedDataAsync("testuser", "testlocation", "name", "nameFilter", true, null, null, null, null, null);
 
@@ -88,6 +93,8 @@ namespace APIAggregation.Tests
             _mockWeatherService.Setup(service => service.GetCurrentWeatherAsync(It.IsAny<string>()))
                 .ReturnsAsync(new WeatherInfo { Name = "Athens", Main = new WeatherMain { Temp = 25.0 }, Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Clear" } } });
 
+            _mockStatisticsService.Setup(s => s.RecordRequest(It.IsAny<string>(), It.IsAny<long>()));
+
             // Act
             var result = await _aggregationService.GetAggregatedDataAsync("testuser", "testlocation", "name", "nameFilter", true, null, null, null, null, null);
 
@@ -102,7 +109,6 @@ namespace APIAggregation.Tests
             Assert.Equal("Athens", result.Weather.Name);
         }
 
-
         [Fact]
         public async Task GetAggregatedDataAsync_WhenTwitterFails_ReturnsFallbackData()
         {
@@ -113,6 +119,8 @@ namespace APIAggregation.Tests
                 .ThrowsAsync(new HttpRequestException());
             _mockWeatherService.Setup(service => service.GetCurrentWeatherAsync(It.IsAny<string>()))
                 .ReturnsAsync(new WeatherInfo { Name = "Athens", Main = new WeatherMain { Temp = 25.0 }, Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Clear" } } });
+
+            _mockStatisticsService.Setup(s => s.RecordRequest(It.IsAny<string>(), It.IsAny<long>()));
 
             // Act
             var result = await _aggregationService.GetAggregatedDataAsync("testuser", "testlocation", "name", "nameFilter", true, null, null, null, null, null);
@@ -138,6 +146,8 @@ namespace APIAggregation.Tests
                 .ReturnsAsync(new TwitterUserData { Id = "123", Username = "testuser", Name = "Test User" });
             _mockWeatherService.Setup(service => service.GetCurrentWeatherAsync(It.IsAny<string>()))
                 .ThrowsAsync(new HttpRequestException());
+
+            _mockStatisticsService.Setup(s => s.RecordRequest(It.IsAny<string>(), It.IsAny<long>()));
 
             // Act
             var result = await _aggregationService.GetAggregatedDataAsync("testuser", "testlocation", "name", "nameFilter", true, null, null, null, null, null);
