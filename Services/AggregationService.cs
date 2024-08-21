@@ -1,5 +1,6 @@
 ﻿using APIAggregation.Interfaces;
 using APIAggregation.Models;
+using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
 
 namespace APIAggregation.Services
@@ -10,17 +11,20 @@ namespace APIAggregation.Services
         private readonly ITwitterService _twitterService;
         private readonly IWeatherService _weatherService;
         private readonly IStatisticsService _statisticsService;
+        private readonly IMemoryCache _cache;
 
         public AggregationService(
             IGitHubService gitHubService,
             ITwitterService twitterService,
             IWeatherService weatherService,
-            IStatisticsService statisticsService)
+            IStatisticsService statisticsService,
+            IMemoryCache cache)
         {
             _gitHubService = gitHubService;
             _twitterService = twitterService;
             _weatherService = weatherService;
             _statisticsService = statisticsService;
+            _cache = cache;
         }
 
         public async Task<AggregatedData> GetAggregatedDataAsync(
@@ -35,6 +39,14 @@ namespace APIAggregation.Services
             DateTime? updatedAfter = null,
             DateTime? updatedBefore = null)
         {
+            string cacheKey = $"aggregated_data_{github}_{twitter}_{location}_{sortBy}_{ascending}_{nameFilter}_{createdAfter}_{createdBefore}_{updatedAfter}_{updatedBefore}";
+
+            // Try to get the cached data
+            if (_cache.TryGetValue(cacheKey, out AggregatedData cachedData))
+            {
+                return cachedData;
+            }
+
             var aggregatedData = new AggregatedData
             {
                 GitHub = new List<GitHubRepo>(),
@@ -115,9 +127,17 @@ namespace APIAggregation.Services
 
             await Task.WhenAll(gitHubTask, twitterTask, weatherTask);
 
+            // Cache the result with an expiration time
+            var cacheEntryOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10),
+                SlidingExpiration = TimeSpan.FromMinutes(2)
+            };
+
+            _cache.Set(cacheKey, aggregatedData, cacheEntryOptions);
+
             return aggregatedData;
         }
-
 
         private IEnumerable<GitHubRepo> FilterGitHubData(IEnumerable<GitHubRepo> repos,
             string? nameFilter,

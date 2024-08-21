@@ -1,54 +1,62 @@
 ﻿using APIAggregation.Interfaces;
 using APIAggregation.Models;
+using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace APIAggregation.Services
+public class StatisticsService : IStatisticsService
 {
-    public class StatisticsService : IStatisticsService
+    private readonly IMemoryCache _cache;
+    private readonly ConcurrentDictionary<string, RequestStatsDetails> _apiStats = new();
+
+    public StatisticsService(IMemoryCache cache)
     {
-        // Dictionary to store request statistics for each API
-        private readonly ConcurrentDictionary<string, RequestStatsDetails> _apiStats = new();
+        _cache = cache;
+    }
 
-        // Records a new request with its response time
-        public void RecordRequest(string apiName, long responseTime)
+    public void RecordRequest(string apiName, long responseTime)
+    {
+        var stats = _apiStats.GetOrAdd(apiName, new RequestStatsDetails());
+
+        // Increment the total request count and add the response time
+        stats.TotalRequests++;
+        stats.ResponseTimes.Add(responseTime);
+
+        // Invalidate cache entry for the specific API stats
+        _cache.Remove($"api_stats_{apiName}");
+    }
+
+    public RequestStatsResponse GetStatistics()
+    {
+        var result = new RequestStatsResponse
         {
-            // Get or create RequestStatsDetails for the given API name
-            var stats = _apiStats.GetOrAdd(apiName, new RequestStatsDetails());
-            // Increment the total request count and add the response time
-            stats.TotalRequests++;
-            stats.ResponseTimes.Add(responseTime);
-        }
+            Stats = new Dictionary<string, RequestStatsDetails>()
+        };
 
-        // Retrieves the statistics for all APIs
-        public RequestStatsResponse GetStatistics()
+        var apiNames = new[] { "github", "twitter", "weather" };
+
+        foreach (var apiName in apiNames)
         {
-            var result = new RequestStatsResponse
-            {
-                Stats = new Dictionary<string, RequestStatsDetails>()
-            };
+            string cacheKey = $"api_stats_{apiName}";
 
-            // List of API names to track
-            var apiNames = new[] { "github", "twitter", "weather" };
-
-            // Process each API name
-            foreach (var apiName in apiNames)
+            // Try to get the cached data
+            if (!_cache.TryGetValue(cacheKey, out RequestStatsDetails stats))
             {
-                // Get or create RequestStatsDetails for the given API name
-                var stats = _apiStats.GetOrAdd(apiName, new RequestStatsDetails());
+                // If cache miss, calculate stats
+                stats = _apiStats.GetOrAdd(apiName, new RequestStatsDetails());
+
                 var responseTimes = stats.ResponseTimes;
 
-                // Calculate the number of requests in each performance bucket
                 var fastCount = responseTimes.Count(rt => rt < 100);
                 var averageCount = responseTimes.Count(rt => rt >= 100 && rt <= 200);
                 var slowCount = responseTimes.Count(rt => rt > 200);
 
-                // Add statistics to the result dictionary
-                result.Stats[apiName] = new RequestStatsDetails
+                // Update the stats object with calculated values
+                stats = new RequestStatsDetails
                 {
                     TotalRequests = stats.TotalRequests,
-                    ResponseTimes = new List<long>(responseTimes),
+                    ResponseTimes = responseTimes.ToList(),
                     Buckets = new Dictionary<string, int>
                     {
                         { "fast", fastCount },
@@ -56,9 +64,20 @@ namespace APIAggregation.Services
                         { "slow", slowCount }
                     }
                 };
+
+                // Cache the result with an expiration time
+                var cacheEntryOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                    SlidingExpiration = TimeSpan.FromMinutes(1)
+                };
+
+                _cache.Set(cacheKey, stats, cacheEntryOptions);
             }
 
-            return result;
+            result.Stats[apiName] = stats;
         }
+
+        return result;
     }
 }
