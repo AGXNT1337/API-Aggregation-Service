@@ -4,11 +4,15 @@
 
 The **API Aggregation Service** fetches and aggregates data from multiple external APIs, including GitHub repositories, Twitter user data, and weather information from OpenWeatherMap. It offers a single endpoint for clients to retrieve consolidated information from these sources, with built-in fault tolerance that returns fallback data when any of the external services fail.
 
-### Features:
-- Aggregates data from GitHub, Twitter, and a weather service.
-- Filters and sorts GitHub repositories based on various criteria.
-- Provides fallback data when external services are unavailable.
-- Configurable inputs for flexible data retrieval.
+## Features
+- **Data Aggregation:** Aggregates data from GitHub, Twitter, and a weather service into a single, cohesive response.
+- **Caching:** Implements caching techniques to optimize performance and minimize redundant API calls, ensuring faster response times and reduced load on external services.
+- **Filtering and Sorting:** Filters and sorts GitHub repositories based on criteria such as name, creation date, and last updated date, allowing for tailored data retrieval.
+- **Fallback Mechanism:** Provides fallback data to ensure consistent output even when external services are unavailable or experience failures.
+- **Configurable Inputs:** Supports configurable inputs for dynamic and flexible data retrieval, adapting to various use cases.
+- **Performance Monitoring:** Tracks API response times and request counts, enabling performance monitoring and categorization into fast, average, and slow response buckets.
+- **Asynchronous Processing:** Utilizes asynchronous tasks to efficiently handle multiple API calls concurrently, improving overall performance.
+
 
 ---
 
