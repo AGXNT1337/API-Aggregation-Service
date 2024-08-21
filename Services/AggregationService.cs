@@ -30,18 +30,22 @@ namespace APIAggregation.Services
             DateTime? createdBefore = null,
             DateTime? updatedAfter = null,
             DateTime? updatedBefore = null)
-        {
 
+        {
             var aggregatedData = new AggregatedData
             {
                 GitHub = new List<GitHubRepo>(),
                 Twitter = new TwitterUserData { Id = "Unavailable", Username = "Unavailable", Name = "Unavailable" },
-                Weather = new WeatherInfo { Name = "Unavailable", Main = new WeatherMain { Temp = double.NaN }, Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Unavailable" } } }
+                Weather = new WeatherInfo
+                {
+                    Name = "Unavailable",
+                    Main = new WeatherMain { Temp = double.NaN },
+                    Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Unavailable" } }
+                }
             };
 
-            try
+            var gitHubTask = Task.Run(async () =>
             {
-                // GitHub Data Fetch
                 try
                 {
                     var gitHubData = await _gitHubService.GetUserRepositoriesAsync(github);
@@ -52,8 +56,10 @@ namespace APIAggregation.Services
                 {
                     aggregatedData.GitHub.Add(new GitHubRepo { Name = "Unavailable", HtmlUrl = "Unavailable" });
                 }
+            });
 
-                // Twitter Data Fetch
+            var twitterTask = Task.Run(async () =>
+            {
                 try
                 {
                     aggregatedData.Twitter = await _twitterService.GetUserDataAsync(twitter) ?? new TwitterUserData { Id = "Unavailable", Username = "Unavailable", Name = "Unavailable" };
@@ -62,24 +68,35 @@ namespace APIAggregation.Services
                 {
                     aggregatedData.Twitter = new TwitterUserData { Id = "Unavailable", Username = "Unavailable", Name = "Unavailable" };
                 }
+            });
 
-                // Weather Data Fetch
+            var weatherTask = Task.Run(async () =>
+            {
                 try
                 {
-                    aggregatedData.Weather = await _weatherService.GetCurrentWeatherAsync(location) ?? new WeatherInfo { Name = "Unavailable", Main = new WeatherMain { Temp = double.NaN }, Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Unavailable" } } };
+                    aggregatedData.Weather = await _weatherService.GetCurrentWeatherAsync(location) ?? new WeatherInfo
+                    {
+                        Name = "Unavailable",
+                        Main = new WeatherMain { Temp = double.NaN },
+                        Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Unavailable" } }
+                    };
                 }
                 catch (Exception)
                 {
-                    aggregatedData.Weather = new WeatherInfo { Name = "Unavailable", Main = new WeatherMain { Temp = double.NaN }, Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Unavailable" } } };
+                    aggregatedData.Weather = new WeatherInfo
+                    {
+                        Name = "Unavailable",
+                        Main = new WeatherMain { Temp = double.NaN },
+                        Weather = new List<WeatherDescription> { new WeatherDescription { Description = "Unavailable" } }
+                    };
                 }
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("" + ex);
-            }
+            });
+
+            await Task.WhenAll(gitHubTask, twitterTask, weatherTask);
 
             return aggregatedData;
         }
+
 
         private IEnumerable<GitHubRepo> FilterGitHubData(IEnumerable<GitHubRepo> repos,
             string? nameFilter,
