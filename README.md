@@ -79,6 +79,95 @@ GET /api/aggregation/aggregate?github=testuser&twitter=testuser&location=Athens&
   }
 }
 ```
+
+### 2. **GET /api/aggregation/request-stats**
+
+#### Description:
+This endpoint provides detailed statistics on the number of requests and response times for each API (GitHub, Twitter, and Weather). The statistics include the total number of requests, response times, and performance buckets categorized by response time thresholds.
+
+#### Example Request:
+```http
+GET /api/aggregation/request-stats
+```
+### Response:
+- **Status Codes:**
+  - **200 OK** - Statistics successfully retrieved.
+  - **500 Internal Server Error** - Error retrieving statistics or unexpected server error.
+
+### Example Response
+
+```json
+{
+  "stats": {
+    "github": {
+      "totalRequests": 2,
+      "responseTimes": [
+        469,
+        320
+      ],
+      "buckets": {
+        "fast": 0,
+        "average": 0,
+        "slow": 2
+      }
+    },
+    "twitter": {
+      "totalRequests": 2,
+      "responseTimes": [
+        350,
+        171
+      ],
+      "buckets": {
+        "fast": 0,
+        "average": 1,
+        "slow": 1
+      }
+    },
+    "weather": {
+      "totalRequests": 2,
+      "responseTimes": [
+        311,
+        74
+      ],
+      "buckets": {
+        "fast": 1,
+        "average": 0,
+        "slow": 1
+      }
+    }
+  }
+}
+```
+
+### Response Structure
+
+- **`stats`**: An object containing statistics for each API.
+
+  - **`github`**: An object with statistics for the GitHub API.
+    - **`totalRequests`**: `integer` - Total number of requests made to the GitHub API.
+    - **`responseTimes`**: `array of integers` - List of response times (in milliseconds) for requests to GitHub.
+    - **`buckets`**: `object` - Performance bucket counts.
+      - **`fast`**: `integer` - Number of requests with response time < 100ms.
+      - **`average`**: `integer` - Number of requests with response time between 100ms and 200ms.
+      - **`slow`**: `integer` - Number of requests with response time > 200ms.
+
+  - **`twitter`**: An object with statistics for the Twitter API, formatted similarly to GitHub.
+    - **`totalRequests`**: `integer` - Total number of requests made to the Twitter API.
+    - **`responseTimes`**: `array of integers` - List of response times (in milliseconds) for requests to Twitter.
+    - **`buckets`**: `object` - Performance bucket counts.
+      - **`fast`**: `integer` - Number of requests with response time < 100ms.
+      - **`average`**: `integer` - Number of requests with response time between 100ms and 200ms.
+      - **`slow`**: `integer` - Number of requests with response time > 200ms.
+
+  - **`weather`**: An object with statistics for the Weather API, formatted similarly to GitHub.
+    - **`totalRequests`**: `integer` - Total number of requests made to the Weather API.
+    - **`responseTimes`**: `array of integers` - List of response times (in milliseconds) for requests to Weather.
+    - **`buckets`**: `object` - Performance bucket counts.
+      - **`fast`**: `integer` - Number of requests with response time < 100ms.
+      - **`average`**: `integer` - Number of requests with response time between 100ms and 200ms.
+      - **`slow`**: `integer` - Number of requests with response time > 200ms.
+
+
 ## Setup and Configuration
 
 ### Prerequisites
